@@ -10,27 +10,27 @@ const NIM_CONFIG = {
 
     // API endpoints
     ENDPOINTS: {
-        BASE_URL: "https://integrate.api.nvidia.com/v1",
-        CHAT_COMPLETIONS: "/chat/completions",
+        BASE_URL: "http://127.0.0.1:3000",
+        CHAT_COMPLETIONS: "/api/rag_chat",
         COMPLETIONS: "/completions",
         EMBEDDINGS: "/embeddings"
     },
 
     // Models available through NIM
     MODELS: {
-        CHAT: "deepseek-ai/deepseek-r1", // Updated model
-        TEXT: "deepseek-ai/deepseek-r1",
-        EMBEDDINGS: "text-embedding-ada-002"
+        CHAT: "mistralai/mixtral-8x7b-instruct-v0.1",
+        TEXT: "mistralai/mixtral-8x7b-instruct-v0.1",
+        EMBEDDINGS: "nvidia/nv-embed-v1"
     },
 
-    // Default parameters for API calls - Updated based on your Python code
+    // Default parameters for API calls
     DEFAULTS: {
-        MAX_TOKENS: 4096,    // Updated max_tokens
-        TEMPERATURE: 0.6,    // Updated temperature
-        TOP_P: 0.7,          // Updated top_p
+        MAX_TOKENS: 4096,
+        TEMPERATURE: 0.6,
+        TOP_P: 0.7,
         FREQUENCY_PENALTY: 0,
         PRESENCE_PENALTY: 0,
-        STREAM: true  // Added streaming support
+        STREAM: true
     },
 
     // Settings for connection and retries
@@ -80,16 +80,10 @@ async function testNimConnection() {
         const response = await fetch(`${NIM_CONFIG.ENDPOINTS.BASE_URL}${NIM_CONFIG.ENDPOINTS.CHAT_COMPLETIONS}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${NIM_CONFIG.API_KEY}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: NIM_CONFIG.MODELS.CHAT,
-                messages: [
-                    { role: "system", content: "You are a helpful assistant." },
-                    { role: "user", content: "Hello, are you connected?" }
-                ],
-                max_tokens: 5
+                query: "Hello, are you connected?"
             })
         });
 
@@ -106,3 +100,31 @@ async function testNimConnection() {
         return false;
     }
 }
+
+// Send the message to the backend
+fetch('/api/chat', {  // Using /api/chat endpoint
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+        messages: [{ role: 'user', content: messageText }]  // Using messages format
+    })
+})
+
+// Response handling without RAG debug info
+.then(data => {
+    console.log("Response data:", data);
+
+    // Hide typing indicator
+    if (typingIndicator) {
+        typingIndicator.style.display = 'none';
+    }
+
+    // Add the bot's response to the chat
+    if (data.status === 'success' && data.message) {
+        addMessageToChat(data.message, 'bot');
+    } else {
+        addMessageToChat("Error: " + (data.message || "Unknown error"), 'bot');
+    }
+})

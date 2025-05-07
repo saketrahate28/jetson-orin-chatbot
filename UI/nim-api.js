@@ -229,14 +229,14 @@ window.sendMessage = function() {
         typingIndicator.style.display = 'block';
     }
 
-    // Send the message to the backend
-    fetch('/api/chat', {
+    // Send the message to the backend using RAG endpoint
+    fetch('/api/rag_chat', {  // Updated to use RAG endpoint
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            messages: [{ role: 'user', content: messageText }]
+            query: messageText  // Updated to use query format
         })
     })
     .then(response => {
@@ -257,6 +257,11 @@ window.sendMessage = function() {
         // Add the bot's response to the chat
         if (data.status === 'success' && data.message) {
             addMessageToChat(data.message, 'bot');
+
+            // Log RAG debug info if available
+            if (data.debug_info && data.debug_info.used_rag) {
+                console.log("RAG information:", data.debug_info);
+            }
         } else {
             addMessageToChat("Error: " + (data.message || "Unknown error"), 'bot');
         }
