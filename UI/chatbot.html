@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L4T Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #121212;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background-color: #1e1e2e;
+            color: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #393950;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .sidebar-header i {
+            font-size: 20px;
+            color: #76b900; /* NVIDIA green */
+        }
+
+        .new-chat-btn {
+            display: flex;
+            margin: 12px;
+            padding: 12px;
+            border: 1px solid #4b4b63;
+            border-radius: 6px;
+            color: white;
+            background: transparent;
+            cursor: pointer;
+            align-items: center;
+            gap: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background-color: #32323f;
+        }
+
+        .history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #c4c4cf;
+            font-size: 14px;
+        }
+
+        .history-item:hover {
+            background-color: #32323f;
+        }
+
+        .settings-section {
+            padding: 16px;
+            border-top: 1px solid #393950;
+        }
+
+        .api-key-container {
+            margin-top: 10px;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid #4b4b63;
+            background-color: #2a2a3a;
+            color: white;
+            font-size: 14px;
+        }
+
+        .save-key-btn {
+            margin-top: 8px;
+            padding: 8px;
+            width: 100%;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .save-key-btn:hover {
+            background-color: #3e39b2;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background-color: #1e1e2e;
+            border-bottom: 1px solid #2d2d3a;
+            align-items: center;
+            color: #e0e0e0;
+        }
+
+        .chat-title-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-title-icon {
+            font-size: 18px;
+            color: #76b900; /* NVIDIA green */
+        }
+
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .toggle-sidebar {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: #e0e0e0;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .message-container {
+            display: flex;
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .avatar.bot {
+            background-color: #76b900; /* NVIDIA green */
+            color: white;
+        }
+
+        .avatar i {
+            font-size: 20px;
+        }
+
+        .message {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+
+        .user-container {
+            background-color: #252530;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            width: 100%;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 24px;
+            position: absolute;
+            bottom: 90px;
+            left: 0;
+            right: 0;
+        }
+
+        .typing-content {
+            display: flex;
+            gap: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            height: 8px;
+            width: 8px;
+            border-radius: 50%;
+            background-color: #d1d5db;
+            animation: blink 1.5s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0% { opacity: 0.2; }
+            20% { opacity: 1; }
+            100% { opacity: 0.2; }
+        }
+
+        .chat-input-container {
+            padding: 16px 24px 24px;
+            background-color: #1e1e2e;
+            position: relative;
+        }
+
+        .chat-input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 12px 16px;
+            padding-right: 50px;
+            padding-left: 45px;
+            border: 1px solid #3d3d4d;
+            border-radius: 8px;
+            font-size: 15px;
+            background-color: #252530;
+            color: #e0e0e0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            resize: none;
+            min-height: 56px;
+            max-height: 200px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #4F46E5;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            bottom: 18px;
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        /* Updated send button with arrow style */
+        .send-button {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .send-button:hover {
+            background-color: #3e39b2;
+        }
+
+        .send-button i {
+            font-size: 14px;
+        }
+
+        /* Folders Section */
+        .folders-section {
+            padding: 16px;
+            border-top: 1px solid #393950;
+        }
+
+        .folders-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .folders-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .add-folder-btn {
+            background: none;
+            border: none;
+            color: #c4c4cf;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .folders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .folder-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #c4c4cf;
+            font-size: 14px;
+        }
+
+        .folder-item:hover {
+            background-color: #32323f;
+        }
+
+        .folder-item.active {
+            background-color: #32323f;
+            font-weight: 500;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                z-index: 10;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                width: 100%;
+            }
+        }
+
+        /* Login/Register Section */
+        .auth-container {
+            position: absolute;
+            top: 12px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .auth-button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .login-btn {
+            background-color: transparent;
+            color: #e0e0e0;
+            border: 1px solid #4F46E5;
+        }
+
+        .login-btn:hover {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        .register-btn {
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+        }
+
+        .register-btn:hover {
+            background-color: #3e39b2;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #1e1e2e;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            color: #e0e0e0;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #c4c4cf;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 4px;
+            border: 1px solid #3d3d4d;
+            background-color: #252530;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            border-color: #4F46E5;
+            outline: none;
+        }
+
+        .form-submit {
+            width: 100%;
+            padding: 10px;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .form-submit:hover {
+            background-color: #3e39b2;
+        }
+
+        .form-footer {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+
+        .form-footer a {
+            color: #4F46E5;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Additional API Key Section Styles */
+        .api-connection-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+
+        .connection-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6b7280;
+        }
+
+        .connection-status.connected {
+            background-color: #10b981;
+        }
+
+        .api-section-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .api-section-title i {
+            color: #4F46E5;
+            font-size: 14px;
+        }
+
+        /* User Profile Section */
+        .user-profile-container {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            width: 300px;
+            background-color: #1e1e2e;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .user-profile-header {
+            padding: 16px;
+            border-bottom: 1px solid #2d2d3a;
+            background-color: #252530;
+        }
+
+        .user-profile-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #4F46E5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #e0e0e0;
+        }
+
+        .user-email {
+            font-size: 14px;
+            color: #a0a0a0;
+            margin-top: 3px;
+        }
+
+        .user-profile-body {
+            padding: 16px;
+        }
+
+        .profile-section {
+            margin-bottom: 16px;
+        }
+
+        .profile-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .profile-section-title i {
+            color: #4F46E5;
+            font-size: 14px;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-item {
+            background-color: #252530;
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #4F46E5;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-top: 4px;
+        }
+
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .profile-action-btn {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .action-primary {
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+        }
+
+        .action-primary:hover {
+            background-color: #3e39b2;
+        }
+
+        .action-secondary {
+            background-color: transparent;
+            color: #e0e0e0;
+            border: 1px solid #3d3d4d;
+        }
+
+        .action-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .action-danger {
+            background-color: transparent;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .action-danger:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            position: absolute;
+            top: 60px;
+            right: 100px; /* Increased from 20px to avoid NVIDIA logo overlap */
+            display: flex;
+            gap: 16px;
+            z-index: 100;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #252530;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #e0e0e0;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .action-btn:hover {
+            background-color: #303040;
+        }
+
+        .action-btn.bookmarked {
+            color: #76b900;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: -36px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #303040;
+            color: #e0e0e0;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Share Menu */
+        .share-menu {
+            display: none;
+            position: absolute;
+            top: 46px;
+            right: 0;
+            background-color: #1e1e2e;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            width: 240px;
+            padding: 12px;
+        }
+
+        .share-menu-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #e0e0e0;
+        }
+
+        .share-input-container {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .share-input {
+            width: 100%;
+            padding: 8px 36px 8px 10px;
+            background-color: #252530;
+            border: 1px solid #3d3d4d;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 12px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .copy-btn:hover {
+            color: #e0e0e0;
+        }
+
+        .share-options {
+            display: none; /* Hide the share options section since we're removing email */
+        }
+
+        .email-share-btn {
+            padding: 8px 12px;
+            background-color: #252530;
+            border-radius: 4px;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #e0e0e0;
+            font-size: 12px;
+        }
+
+        .email-share-btn:hover {
+            background-color: #303040;
+        }
+
+        .email-share-btn i {
+            font-size: 14px;
+            color: #76b900;
+        }
+
+        /* Add this CSS to your stylesheet or in a <style> tag in your HTML */
+        .chat-input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .fas.fa-keyboard.input-icon {
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          z-index: 1;
+          pointer-events: none; /* This prevents the icon from capturing clicks */
+        }
+
+        .chat-input {
+          padding-left: 35px; /* Make room for the icon */
+          width: 100%;
+          resize: none;
+        }
+
+        .send-button {
+          margin-left: 10px;
+          z-index: 2;
+        }
+
+        /* Reset container styles to eliminate unwanted spacing */
+        #chat-container,
+        .chat-container,
+        .chat-window,
+        .message-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: 0 !important;
+        }
+
+        /* Specifically target the chat messages container */
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            padding: 10px !important;
+            margin: 0 !important;
+            gap: 6px !important; /* This controls spacing between messages */
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        /* Fix message display */
+        .message {
+            padding: 10px 15px !important;
+            margin: 0 !important; /* Remove default margins */
+            border-radius: 10px !important;
+            max-width: 85% !important;
+            width: auto !important;
+            box-sizing: border-box !important;
+            display: inline-block !important;
+            overflow-wrap: break-word !important;
+        }
+
+        /* Remove any line breaks that might be inserted */
+        br {
+            display: none !important;
+        }
+
+        /* Ensure messages appear on separate lines */
+        #chat-messages > * {
+            display: block !important;
+            width: fit-content !important; /* Make containers fit their content */
+            max-width: 85% !important;
+        }
+
+        /* Fix user message alignment */
+        .message.user {
+            margin-left: auto !important;
+            margin-right: 0 !important;
+            background-color: #2b5278 !important;
+            color: white !important;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+        }
+
+        /* Fix bot message alignment */
+        .message.bot {
+            margin-right: auto !important;
+            margin-left: 0 !important;
+            background-color: #383838 !important;
+            color: #e6e6e6 !important;
+            font-family: 'Roboto', Arial, sans-serif !important;
+        }
+
+        /* Add a small space between consecutive messages from the same sender */
+        .message.user + .message.user {
+            margin-top: 2px !important;
+        }
+
+        .message.bot + .message.bot {
+            margin-top: 2px !important;
+        }
+
+        /* Add a slightly larger space between messages from different senders */
+        .message.user + .message.bot,
+        .message.bot + .message.user {
+            margin-top: 6px !important;
+        }
+
+        /* Make sure typing indicator doesn't have extra spacing */
+        #typing-indicator {
+            margin: 2px 0 !important;
+            padding: 8px !important;
+        }
+
+        /* Chat container styles */
+        #chat-container,
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Chat messages container */
+        #chat-messages {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        /* All messages base styles */
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 15px;
+            line-height: 1.5;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            margin: 0;
+            word-wrap: break-word;
+            width: auto;
+            align-self: flex-start;
+        }
+
+        /* Bot message styles */
+        .message.bot {
+            background-color: #333;
+            color: #e6e6e6;
+            text-align: left;
+            margin-right: auto;
+        }
+
+        /* User message styles */
+        .message.user {
+            background-color: #2b5278;
+            color: #ffffff;
+            text-align: left;
+            margin-right: auto;
+            align-self: flex-start;
+        }
+
+        /* Fix system messages and labels */
+        .system-message,
+        .message.system {
+            font-style: italic !important;
+            color: #999999 !important;
+            background: transparent !important;
+            text-align: left !important;
+            font-size: 13px !important;
+            padding: 4px 8px !important;
+            margin: 4px 0 !important;
+            max-width: 100% !important;
+        }
+
+        /* Make the whole UI consistent */
+        .chat-header {
+            padding: 12px 16px;
+            background-color: #252525;
+            border-bottom: 1px solid #333;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: left;
+        }
+
+        /* Input area fixes */
+        .chat-input-container {
+            padding: 12px;
+            background-color: #252525;
+            border-top: 1px solid #333;
+        }
+
+        /* Fix for welcome message - clean, minimal approach */
+        .message.bot:first-of-type {
+            white-space: nowrap;
+            width: auto;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            background-color: #1a4b9c;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* Container styling */
+        #chat-messages,
+        .chat-messages {
+            width: 100%;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        /* Chat container */
+        #chat-messages, .chat-messages {
+          width: 100%;
+          padding: 15px;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Welcome message - single line, no wrap */
+        .welcome-message, .message.bot:first-of-type {
+          display: inline-block;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 90vw; /* Responsive */
+          background-color: #1a4b9c;
+          color: #fff;
+          padding: 12px 20px;
+          border-radius: 8px;
+          font-size: 18px;
+          margin: 24px 0 16px 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+          line-height: 1.3;
+          align-self: flex-start;
+        }
+
+        /* User message: right-aligned */
+        .message.user {
+          display: flex;
+          justify-content: flex-end;
+          margin: 12px 0;
+          width: 100%;
+        }
+        .message.user .bubble {
+          background: #265b8c;
+          color: #fff;
+          padding: 12px 20px;
+          border-radius: 8px 8px 2px 8px;
+          max-width: 60vw;
+          font-size: 16px;
+        }
+
+        /* Bot message: left-aligned */
+        .message.bot:not(:first-of-type) {
+          display: flex;
+          justify-content: flex-start;
+          margin: 12px 0;
+          width: 100%;
+        }
+        .message.bot:not(:first-of-type) .bubble {
+          background: #333;
+          color: #fff;
+          padding: 12px 20px;
+          border-radius: 8px 8px 8px 2px;
+          max-width: 60vw;
+          font-size: 16px;
+        }
+
+        /* Remove line breaks in welcome */
+        .welcome-message br, .message.bot:first-of-type br {
+          display: none;
+        }
+
+        /* Global reset */
+        #chat-container * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        /* Chat container */
+        #chat-messages, .chat-messages {
+          width: 100%;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          background-color: #1a1a1a;
+        }
+
+        /* Welcome message - single line */
+        .message.bot:first-of-type {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          background-color: #333;
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-size: 16px;
+          width: auto;
+          max-width: 95%;
+          margin-bottom: 10px;
+          display: inline-block;
+        }
+
+        /* User messages */
+        .message.user {
+          background-color: #265b8c;
+          color: white;
+          padding: 12px 14px;
+          border-radius: 8px;
+          max-width: 80%;
+          margin: 6px 0;
+          align-self: flex-start;
+          font-size: 14px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Bot responses - proper formatting */
+        .message.bot:not(:first-of-type) {
+          background-color: #333;
+          color: white;
+          padding: 16px;
+          border-radius: 8px;
+          width: 90%;
+          margin: 8px 0;
+          align-self: flex-start;
+          font-size: 14px;
+          line-height: 1.5;
+          white-space: pre-line; /* Preserve paragraph breaks */
+          text-align: left;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        /* Properly format paragraphs in bot responses */
+        .message.bot:not(:first-of-type) p {
+          margin-bottom: 12px;
+        }
+
+        /* Format numbered/bulleted lists in bot responses */
+        .message.bot:not(:first-of-type) ol,
+        .message.bot:not(:first-of-type) ul {
+          padding-left: 24px;
+          margin: 8px 0;
+        }
+
+        .message.bot:not(:first-of-type) li {
+          margin-bottom: 6px;
+        }
+
+        /* Chat container */
+        #chat-messages, .chat-messages {
+          width: 100%;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          background-color: #1a1a1a;
+        }
+
+        /* Chat container with modern minimal white aesthetic */
+        #chat-messages, .chat-messages {
+          width: 100%;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          background-color: #1a1a1a;
+          gap: 12px;
+        }
+
+        /* Welcome message - single line with consistent styling */
+        .message.bot:first-of-type {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          background-color: #333;
+          color: white;
+          padding: 14px 18px;
+          border-radius: 12px;
+          font-size: 16px;
+          width: auto;
+          max-width: 95%;
+          margin-bottom: 12px;
+          display: inline-block;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* User messages - improved padding and modern look */
+        .message.user {
+          background-color: #265b8c;
+          color: white;
+          padding: 14px 18px; /* Increased padding */
+          border-radius: 12px; /* Rounder corners */
+          max-width: 80%;
+          margin: 8px 0;
+          align-self: flex-start;
+          font-size: 15px; /* Slightly larger text */
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* More pronounced shadow */
+          line-height: 1.5;
+        }
+
+        /* Bot responses - proper formatting with consistent padding */
+        .message.bot:not(:first-of-type) {
+          background-color: #333;
+          color: white;
+          padding: 16px 20px; /* Generous padding */
+          border-radius: 12px; /* Rounder corners */
+          width: 90%;
+          margin: 8px 0;
+          align-self: flex-start;
+          font-size: 15px; /* Slightly larger text */
+          line-height: 1.6; /* Better readability */
+          white-space: pre-line; /* Preserve paragraph breaks */
+          text-align: left;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* More pronounced shadow */
+          word-wrap: break-word;
+        }
+
+        /* Properly format paragraphs in bot responses */
+        .message.bot:not(:first-of-type) p {
+          margin-bottom: 14px; /* More space between paragraphs */
+        }
+
+        /* Format numbered/bulleted lists in bot responses */
+        .message.bot:not(:first-of-type) ol,
+        .message.bot:not(:first-of-type) ul {
+          padding-left: 24px;
+          margin: 14px 0; /* More space around lists */
+        }
+
+        .message.bot:not(:first-of-type) li {
+          margin-bottom: 10px; /* More space between list items */
+          padding-left: 4px; /* Indent list items */
+        }
+
+        /* Highlight important text in responses */
+        .message.bot:not(:first-of-type) strong,
+        .message.bot:not(:first-of-type) b {
+          color: #85c1ff;
+        }
+
+        /* Add subtle styling touches for a modern chat appearance */
+        .message {
+          position: relative;
+          transition: transform 0.1s ease;
+        }
+
+        .message:hover {
+          transform: translateY(-1px);
+        }
+
+        /* Add a subtle separator between message groups */
+        .message.user + .message.bot:not(:first-of-type),
+        .message.bot:not(:first-of-type) + .message.user {
+          margin-top: 16px;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+          .message.user, .message.bot:not(:first-of-type) {
+            max-width: 90%;
+            padding: 12px 16px;
+          }
+        }
+
+        /* Logo container in top right */
+        .nvidia-logo-container {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        /* Logo styling */
+        .nvidia-logo {
+            width: 65px; /* Reduced from 80px */
+            height: auto;
+            background-color: #76b900;
+            border-radius: 4px;
+        }
+
+        /* NVIDIA text fallback if image fails */
+        .nvidia-text-fallback {
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 18px;
+            color: #ffffff;
+            background-color: #76b900;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: none; /* Hidden by default, shown if image fails */
+        }
+
+        /* Copyright text */
+        .copyright-text {
+            font-size: 10px;
+            color: #ccc;
+            margin-top: 3px;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Remove any existing login/register elements */
+        .login-container, .register-container, .auth-container,
+        .login-button, .register-button, .auth-button,
+        [id*="login"], [id*="register"], [id*="auth"],
+        [class*="login"], [class*="register"], [class*="auth"] {
+            display: none !important;
+        }
+
+        /* Position the folder tabs at the top of the chat container */
+        .chat-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .folder-tabs {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #1a1a1a;
+            padding-top: 10px;
+        }
+
+        /* Ensure chat messages container allows scrolling after tabs */
+        #chat-messages, .chat-messages {
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        /* Add CSS for delete buttons */
+        .history-item {
+            position: relative;
+            padding-right: 30px; /* Add space for delete button */
+        }
+        .delete-chat-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8a8a8a;
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 5;
+        }
+        .history-item:hover .delete-chat-btn {
+            opacity: 1;
+        }
+        .delete-chat-btn:hover {
+            color: #ef4444;
+        }
+        .delete-all-btn {
+            margin-left: auto;
+            color: #8a8a8a;
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .delete-all-btn:hover {
+            color: #ef4444;
+        }
+        .folder-header-with-delete {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            background-color: #252530;
+            border-radius: 5px;
+        }
+        .folder-name {
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        .confirm-modal {
+            background-color: #1e1e2e;
+            border-radius: 8px;
+            padding: 20px;
+            width: 300px;
+            max-width: 90%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .confirm-modal-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+        .confirm-modal-message {
+            margin-bottom: 20px;
+            color: #b0b0b0;
+            font-size: 14px;
+        }
+        .confirm-modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .confirm-btn {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .cancel-btn {
+            background-color: #303040;
+            color: #e0e0e0;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        /* Welcome message - fix excessive padding and spacing */
+        .welcome-message, .message.bot:first-of-type {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 85%;
+          background-color: #1a4b9c;
+          color: #fff;
+          padding: 10px 15px;
+          border-radius: 8px;
+          font-size: 16px;
+          margin: 10px 0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+          line-height: 1.3;
+          align-self: flex-start;
+        }
+
+        /* User input area - fix excessive padding */
+        .chat-input-container {
+          padding: 10px;
+          background-color: #1e1e2e;
+          position: relative;
+        }
+
+        .chat-input {
+          width: 100%;
+          padding: 8px 36px 8px 32px;
+          border: 1px solid #3d3d4d;
+          border-radius: 8px;
+          font-size: 14px;
+          background-color: #252530;
+          color: #e0e0e0;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          resize: none;
+          min-height: 40px;
+          max-height: 150px;
+          outline: none;
+        }
+
+        /* Fix icon positioning in input area */
+        .input-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6b7280;
+          font-size: 14px;
+        }
+
+        /* Adjust send button position */
+        .send-button {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 30px;
+          height: 30px;
+        }
+
+        /* Fix chat messages vertical spacing */
+        #chat-messages, .chat-messages {
+          padding: 10px;
+          gap: 6px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- NVIDIA NIM API Integration -->
+    <script src="nim-config.js"></script>
+    <script src="nim-api.js"></script>
+</head>
+<body>
+    <!-- Login and Register buttons -->
+    <div class="auth-container">
+        <button class="auth-button login-btn" id="login-button">Login</button>
+        <button class="auth-button register-btn" id="register-button">Register</button>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Login</div>
+                <button class="modal-close" id="close-login">&times;</button>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-input" required>
+                </div>
+                <button type="submit" class="form-submit">Login</button>
+                <div class="form-footer">
+                    Don't have an account? <a id="switch-to-register">Register</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div class="modal" id="register-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Create Account</div>
+                <button class="modal-close" id="close-register">&times;</button>
+            </div>
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="register-name">Name</label>
+                    <input type="text" id="register-name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm">Confirm Password</label>
+                    <input type="password" id="register-confirm" class="form-input" required>
+                </div>
+                <button type="submit" class="form-submit">Create Account</button>
+                <div class="form-footer">
+                    Already have an account? <a id="switch-to-login">Login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Profile Container -->
+    <div class="user-profile-container" id="user-profile">
+        <div class="user-profile-header">
+            <div class="user-profile-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <div class="user-name" id="profile-name">User Name</div>
+                    <div class="user-email" id="profile-email">user@example.com</div>
+                </div>
+            </div>
+        </div>
+        <div class="user-profile-body">
+            <div class="profile-section">
+                <div class="profile-section-title">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Activity Stats</span>
+                </div>
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="chat-count">0</div>
+                        <div class="stat-label">Chats</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="message-count">0</div>
+                        <div class="stat-label">Messages</div>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-section">
+                <div class="profile-section-title">
+                    <i class="fas fa-cog"></i>
+                    <span>Account Settings</span>
+                </div>
+                <div class="profile-actions">
+                    <button class="profile-action-btn action-secondary" id="edit-profile-btn">
+                        <i class="fas fa-edit"></i>
+                        <span>Edit Profile</span>
+                    </button>
+                    <button class="profile-action-btn action-secondary" id="export-data-btn">
+                        <i class="fas fa-download"></i>
+                        <span>Export My Data</span>
+                    </button>
+                    <button class="profile-action-btn action-danger" id="delete-account-btn">
+                        <i class="fas fa-trash-alt"></i>
+                        <span>Delete Account</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMjU2IDI1NiI+PHBhdGggZmlsbD0iIzc2QjkwMCIgZD0iTTExNyAwQzUyLjQgMCAwIDUyLjQgMCAxMTdjMCA2NC42IDUyLjQgMTE3IDExNyAxMTdjNjQuNiAwIDExNy01Mi40IDExNy0xMTdDMjM0IDUyLjQgMTgxLjYgMCAxMTcgMG0wIDIxMC45Yy01MS44IDAtOTMuOS00Mi4xLTkzLjktOTMuOWMwLTUxLjggNDIuMS05My45IDkzLjktOTMuOWM1MS44IDAgOTMuOSA0Mi4xIDkzLjkgOTMuOWMwIDUxLjgtNDIuMSA5My45LTkzLjkgOTMuOSIvPjxwYXRoIGZpbGw9IiM3NkI5MDAiIGQ9Ik0xMjAgMTYuNmMtNDYuMiAwLTgzLjcgMzcuNS04My43IDgzLjdjMCAxLjcgMC4xIDMuMyAwLjIgNWgtMC4ydjI1LjVzMjYuNS0zOC4zIDMwLjctNDMuN2MzLjEtMy44IDYuMy01LjUgMTEuMS01LjVoNDEuNmM1LjggMCAxMC40IDMuMSAxMy4zIDcuOHYtMC4xYzQgNi44IDIxLjcgNDEuNiAyMS43IDQxLjZ2LTI1LjZoLTAuMWMwLjEtMS43IDAuMi0zLjMgMC4yLTVjMC00Ni4yLTM3LjQtODMuNy04My44LTgzLjciLz48cGF0aCBmaWxsPSIjRkZGRkZGIiBkPSJNMTYyLjggNTguM2MwLTQtMy4yLTcuMi03LjItNy4yaC03MWMtNCAwLTcuMiAzLjItNy4yIDcuMnY1MC44YzAgNCAxIDcuOCAzLjggMTEuMmw4LjEgMTIuNmMyLjEgNC4yIDMuMyA0LjIgOS4zIDQuMmgzMC41YzYgMCA3LjItMCA5LjMtNC4ybDguMS0xMi42YzIuOC0zLjQgMy44LTcuMiAzLjgtMTEuMmwtMC4xLTUwLjhoLTAuNFY1OC4zaDB6bS01Mi40IDU1LjJjMCAyLjgtMi4zIDUtNS4xIDVoLTEwLjljLTIuOCAwLTUtMi4zLTUtNXYtMTIuMmMwLTIuOCAyLjMtNSA1LTVoMTAuOWMyLjggMCA1LjEgMi4zIDUuMSA1czcuMiAyLjkgNy4yIDV2Ny4yYy0wLjEgMi44LTIuMyA1LTUuMSA1aC0zLjJjLTIuOCAwLTUuMS0yLjMtNS4xLTVoLTUuMWM0NS41LTAuMSAxOC44LTAuMSAyMi42LTAuMWM5LTAuMSA5LjQtMTQuMyAwLjMtMTQuM0g5OC45Yy05LjQgMC03LjYgMTQtMC4xIDE0LjFsMCAwYzMuMSAwIDUuNS0yLjQgNS41LTVINzUuOGMtMy40IDAtMy40LTUuMSAwLTUuMWg2LjljMyAwIDYuNC0zLjEgNi40LTUuOGMwLTIuOC0yLjMtNS01LjEtNUg3My4xYy0yLjggMC01IDIuMy01IDV2NS44YzAgMi44IDIuMyA1IDUgNWg2LjljMi44IDAgNS4xLTIuMyA1LjEtNXYtMC42YzAtMy40IDUuMS0zLjQgNS4xIDBWOTIuOWMwIDMuNC01LjEgMy40LTUuMSAwdi0wLjhjMC0yLjgtMi4zLTUuMS01LjEtNS5oLTYuOGMtMi44IDAtNSAyLjMtNSA1djguOGMwIDIuOCAyLjMgNSA1IDVoMzAuM2MzLjQgMCA1LjgtMi4zIDUuOC01di04LjhjMC0yLjgtMi4zLTUtNS01aC02LjhjLTIuOCAwLTUuMSAyLjMtNS4xIDUuMXYwLjhjMCAzLjQtNS4xIDMuNC01LjEgMHYtMC43eiIvPjwvc3ZnPg==" alt="NVIDIA Logo" style="width: 32px; height: 32px; margin-right: 10px;">
+            <h3>L4T Chatbot</h3>
+        </div>
+
+        <button class="new-chat-btn" id="new-chat-btn">
+            <i class="fas fa-plus"></i>
+            <span>New Chat</span>
+        </button>
+
+        <div class="history" id="chat-history">
+            <!-- Chat history items will be added here -->
+            <div class="history-item">
+                <i class="fas fa-comment"></i>
+                <span>How to learn JavaScript?</span>
+            </div>
+            <div class="history-item">
+                <i class="fas fa-comment"></i>
+                <span>Explain quantum computing</span>
+            </div>
+        </div>
+
+        <div class="folders-section">
+            <div class="folders-header">
+                <div class="folders-title">Folders</div>
+                <button class="add-folder-btn" id="add-folder-btn">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="folders-list" id="folders-list">
+                <div class="folder-item active">
+                    <i class="fas fa-folder"></i>
+                    <span>General</span>
+                </div>
+                <div class="folder-item">
+                    <i class="fas fa-folder"></i>
+                    <span>Work</span>
+                </div>
+                <div class="folder-item">
+                    <i class="fas fa-folder"></i>
+                    <span>Personal</span>
+                </div>
+            </div>
+        </div>
+        <!-- Settings section removed as it will be handled in backend .env file -->
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="chat-header">
+            <button class="toggle-sidebar" id="toggle-sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="chat-title-container">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMjU2IDI1NiI+PHBhdGggZmlsbD0iIzc2QjkwMCIgZD0iTTExNyAwQzUyLjQgMCAwIDUyLjQgMCAxMTdjMCA2NC42IDUyLjQgMTE3IDExNyAxMTdjNjQuNiAwIDExNy01Mi40IDExNy0xMTdDMjM0IDUyLjQgMTgxLjYgMCAxMTcgMG0wIDIxMC45Yy01MS44IDAtOTMuOS00Mi4xLTkzLjktOTMuOWMwLTUxLjggNDIuMS05My45IDkzLjktOTMuOWM1MS44IDAgOTMuOSA0Mi4xIDkzLjkgOTMuOWMwIDUxLjgtNDIuMSA5My45LTkzLjkgOTMuOSIvPjxwYXRoIGZpbGw9IiM3NkI5MDAiIGQ9Ik0xMjAgMTYuNmMtNDYuMiAwLTgzLjcgMzcuNS04My43IDgzLjdjMCAxLjcgMC4xIDMuMyAwLjIgNWgtMC4ydjI1LjVzMjYuNS0zOC4zIDMwLjctNDMuN2MzLjEtMy44IDYuMy01LjUgMTEuMS01LjVoNDEuNmM1LjggMCAxMC40IDMuMSAxMy4zIDcuOHYtMC4xYzQgNi44IDIxLjcgNDEuNiAyMS43IDQxLjZ2LTI1LjZoLTAuMWMwLjEtMS43IDAuMi0zLjMgMC4yLTVjMC00Ni4yLTM3LjQtODMuNy04My44LTgzLjciLz48L3N2Zz4=" alt="NVIDIA Logo" class="chat-title-icon" style="width: 24px; height: 24px;">
+                <div class="chat-title">New Conversation</div>
+            </div>
+            <div></div> <!-- Empty div for flex spacing -->
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <!-- Bot welcome message -->
+            <div class="message-container">
+                <div class="avatar bot">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMjU2IDI1NiI+PHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTExNyAwQzUyLjQgMCAwIDUyLjQgMCAxMTdjMCA2NC42IDUyLjQgMTE3IDExNyAxMTdjNjQuNiAwIDExNy01Mi40IDExNy0xMTdDMjM0IDUyLjQgMTgxLjYgMCAxMTcgMG0wIDIxMC45Yy01MS44IDAtOTMuOS00Mi4xLTkzLjktOTMuOWMwLTUxLjggNDIuMS05My45IDkzLjktOTMuOWM1MS44IDAgOTMuOSA0Mi4xIDkzLjkgOTMuOWMwIDUxLjgtNDIuMSA5My45LTkzLjkgOTMuOSIvPjxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik0xMjAgMTYuNmMtNDYuMiAwLTgzLjcgMzcuNS04My43IDgzLjdjMCAxLjcgMC4xIDMuMyAwLjIgNWgtMC4ydjI1LjVzMjYuNS0zOC4zIDMwLjctNDMuN2MzLjEtMy44IDYuMy01LjUgMTEuMS01LjVoNDEuNmM1LjggMCAxMC40IDMuMSAxMy4zIDcuOHYtMC4xYzQgNi44IDIxLjcgNDEuNiAyMS43IDQxLjZ2LTI1LjZoLTAuMWMwLjEtMS43IDAuMi0zLjMgMC4yLTVjMC00Ni4yLTM3LjQtODMuNy04My44LTgzLjciLz48L3N2Zz4=" alt="NVIDIA" style="width: 20px; height: 20px;">
+                </div>
+                <div class="message">
+                    Hi there! I'm L4T Chatbot. How can I help you today?
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">
+            <div class="typing-content">
+                <div class="avatar bot">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMjU2IDI1NiI+PHBhdGggZmlsbD0iI0ZGRkZGRiIgZD0iTTExNyAwQzUyLjQgMCAwIDUyLjQgMCAxMTdjMCA2NC42IDUyLjQgMTE3IDExNyAxMTdjNjQuNiAwIDExNy01Mi40IDExNy0xMTdDMjM0IDUyLjQgMTgxLjYgMCAxMTcgMG0wIDIxMC45Yy01MS44IDAtOTMuOS00Mi4xLTkzLjktOTMuOWMwLTUxLjggNDIuMS05My45IDkzLjktOTMuOWM1MS44IDAgOTMuOSA0Mi4xIDkzLjkgOTMuOWMwIDUxLjgtNDIuMSA5My45LTkzLjkgOTMuOSIvPjxwYXRoIGZpbGw9IiNGRkZGRkYiIGQ9Ik0xMjAgMTYuNmMtNDYuMiAwLTgzLjcgMzcuNS04My43IDgzLjdjMCAxLjcgMC4xIDMuMyAwLjIgNWgtMC4ydjI1LjVzMjYuNS0zOC4zIDMwLjctNDMuN2MzLjEtMy44IDYuMy01LjUgMTEuMS01LjVoNDEuNmM1LjggMCAxMC40IDMuMSAxMy4zIDcuOHYtMC4xYzQgNi44IDIxLjcgNDEuNiAyMS43IDQxLjZ2LTI1LjZoLTAuMWMwLjEtMS43IDAuMi0zLjMgMC4yLTVjMC00Ni4yLTM3LjQtODMuNy04My44LTgzLjciLz48L3N2Zz4=" alt="NVIDIA" style="width: 20px; height: 20px;">
+                </div>
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <i class="fas fa-keyboard input-icon"></i>
+                <textarea id="user-input" class="chat-input" placeholder="Message L4T Chatbot..." rows="1"></textarea>
+                <button id="send-button" class="send-button" onclick="sendMessage()">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button class="action-btn" id="bookmark-btn">
+            <i class="fas fa-bookmark"></i>
+            <span class="tooltip">Bookmark conversation</span>
+        </button>
+        <button class="action-btn" id="share-btn">
+            <i class="fas fa-share-alt"></i>
+            <span class="tooltip">Share conversation</span>
+            <div class="share-menu" id="share-menu">
+                <div class="share-menu-title">Share this conversation</div>
+                <div class="share-input-container">
+                    <input type="text" class="share-input" id="share-link" readonly>
+                    <button class="copy-btn" id="copy-link-btn">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </button>
+    </div>
+
+    <!-- NVIDIA Logo and Copyright in top right -->
+    <div class="nvidia-logo-container">
+        <!-- Try multiple image sources with full absolute path -->
+        <img src="/UI/NVLogo_2D.jpg" alt="NVIDIA Logo" class="nvidia-logo"
+             onerror="this.style.display='none'; document.getElementById('nvidia-text').style.display='block';">
+        <div id="nvidia-text" class="nvidia-text-fallback">NVIDIA</div>
+        <span class="copyright-text">© NVIDIA 2025</span>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const chatMessages = document.getElementById('chat-messages') || document.querySelector('.chat-messages');
+            const chatHistory = document.getElementById('chat-history');
+            const folderItems = document.querySelectorAll('.folder-item');
+            const newChatButton = document.getElementById('new-chat-btn');
+            const chatTitle = document.querySelector('.chat-title');
+
+            // Current active folder and conversation
+            let currentFolder = localStorage.getItem('activeFolder') || 'General';
+            let currentConversationId = localStorage.getItem(`current_conversation_${currentFolder}`) || null;
+
+            // Initialize folders and their conversations
+            const folders = ['General', 'Work', 'Personal'];
+            folders.forEach(folder => {
+                // Initialize folder conversations list if not exists
+                if (!localStorage.getItem(`folder_conversations_${folder}`)) {
+                    localStorage.setItem(`folder_conversations_${folder}`, JSON.stringify([]));
+                }
+            });
+
+            // Add CSS for delete buttons
+            const style = document.createElement('style');
+            style.textContent = `
+                .history-item {
+                    position: relative;
+                    padding-right: 30px; /* Add space for delete button */
+                }
+                .delete-chat-btn {
+                    position: absolute;
+                    right: 5px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: #8a8a8a;
+                    background: none;
+                    border: none;
+                    font-size: 14px;
+                    cursor: pointer;
+                    opacity: 0;
+                    transition: opacity 0.2s;
+                    z-index: 5;
+                }
+                .history-item:hover .delete-chat-btn {
+                    opacity: 1;
+                }
+                .delete-chat-btn:hover {
+                    color: #ef4444;
+                }
+                .delete-all-btn {
+                    margin-left: auto;
+                    color: #8a8a8a;
+                    background: none;
+                    border: none;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: color 0.2s;
+                }
+                .delete-all-btn:hover {
+                    color: #ef4444;
+                }
+                .folder-header-with-delete {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 10px;
+                    padding: 5px 10px;
+                    background-color: #252530;
+                    border-radius: 5px;
+                }
+                .folder-name {
+                    font-weight: bold;
+                    color: #e0e0e0;
+                }
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    display: none;
+                }
+                .confirm-modal {
+                    background-color: #1e1e2e;
+                    border-radius: 8px;
+                    padding: 20px;
+                    width: 300px;
+                    max-width: 90%;
+                    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+                }
+                .confirm-modal-title {
+                    font-size: 18px;
+                    margin-bottom: 15px;
+                    color: #e0e0e0;
+                }
+                .confirm-modal-message {
+                    margin-bottom: 20px;
+                    color: #b0b0b0;
+                    font-size: 14px;
+                }
+                .confirm-modal-buttons {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 10px;
+                }
+                .confirm-btn {
+                    padding: 8px 15px;
+                    border-radius: 5px;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 14px;
+                }
+                .cancel-btn {
+                    background-color: #303040;
+                    color: #e0e0e0;
+                }
+                .delete-btn {
+                    background-color: #ef4444;
+                    color: white;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Add HTML for confirm modal
+            const modalHTML = `
+                <div class="modal-overlay" id="confirm-modal-overlay">
+                    <div class="confirm-modal">
+                        <div class="confirm-modal-title">Confirm Delete</div>
+                        <div class="confirm-modal-message" id="confirm-modal-message">
+                            Are you sure you want to delete this conversation?
+                        </div>
+                        <div class="confirm-modal-buttons">
+                            <button class="confirm-btn cancel-btn" id="cancel-delete-btn">Cancel</button>
+                            <button class="confirm-btn delete-btn" id="confirm-delete-btn">Delete</button>
+                            </div>
+                            </div>
+                    </div>
+                `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+            // Confirm modal elements
+            const confirmModalOverlay = document.getElementById('confirm-modal-overlay');
+            const confirmModalMessage = document.getElementById('confirm-modal-message');
+            const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+
+            // Delete confirmation variables
+            let deleteType = null; // 'conversation' or 'all'
+            let deleteConversationId = null;
+
+            // Show confirm modal
+            function showConfirmModal(message, type, id = null) {
+                confirmModalMessage.textContent = message;
+                deleteType = type;
+                deleteConversationId = id;
+                confirmModalOverlay.style.display = 'flex';
+            }
+
+            // Hide confirm modal
+            function hideConfirmModal() {
+                confirmModalOverlay.style.display = 'none';
+                deleteType = null;
+                deleteConversationId = null;
+            }
+
+            // Handle confirm delete
+            function handleConfirmDelete() {
+                if (deleteType === 'conversation' && deleteConversationId) {
+                    deleteConversation(deleteConversationId);
+                } else if (deleteType === 'all') {
+                    deleteAllConversations();
+                }
+                hideConfirmModal();
+            }
+
+            // Delete a single conversation
+            function deleteConversation(conversationId) {
+                // Get folder conversations
+                const folderConversations = JSON.parse(localStorage.getItem(`folder_conversations_${currentFolder}`) || '[]');
+
+                // Find the conversation to remove
+                const updatedConversations = folderConversations.filter(conv => conv.id !== conversationId);
+
+                    // Update storage
+                localStorage.setItem(`folder_conversations_${currentFolder}`, JSON.stringify(updatedConversations));
+
+                // Remove the actual conversation data
+                localStorage.removeItem(`conversation_${conversationId}`);
+
+                // If we deleted the current conversation, start a new one
+                if (conversationId === currentConversationId) {
+                    currentConversationId = null;
+                    localStorage.removeItem(`current_conversation_${currentFolder}`);
+                    startNewChat();
+                } else {
+                    // Just update the history display
+                    updateHistoryDisplay();
+                }
+
+                console.log(`Deleted conversation ${conversationId} from ${currentFolder}`);
+            }
+
+            // Delete all conversations in the current folder
+            function deleteAllConversations() {
+                // Get all conversations for the current folder
+                const folderConversations = JSON.parse(localStorage.getItem(`folder_conversations_${currentFolder}`) || '[]');
+
+                // Delete all conversation data
+                folderConversations.forEach(conv => {
+                    localStorage.removeItem(`conversation_${conv.id}`);
+                });
+
+                // Clear the conversations list
+                localStorage.setItem(`folder_conversations_${currentFolder}`, JSON.stringify([]));
+
+                // Reset current conversation
+                currentConversationId = null;
+                localStorage.removeItem(`current_conversation_${currentFolder}`);
+
+                // Start a new chat
+                startNewChat();
+
+                console.log(`Deleted all conversations from ${currentFolder}`);
+            }
+
+            // Generate a title from the first user message or use default
+            function generateTitle(messages) {
+                // Find first user message
+                const firstUserMessage = messages.find(m => m.role === 'user');
+                if (firstUserMessage) {
+                    // Limit title length to reasonable size
+                    let title = firstUserMessage.content.trim();
+                    if (title.length > 50) {
+                        title = title.substring(0, 47) + '...';
+                    }
+                    return title;
+                }
+                return 'New Conversation';
+            }
+
+            // Function to save current chat with proper title
+            function saveCurrentChat() {
+                if (!chatMessages) return;
+
+                const messages = [];
+                const messageElements = chatMessages.querySelectorAll('.message');
+
+                messageElements.forEach(el => {
+                    // Skip the welcome message
+                    if (el.classList.contains('bot') && el.textContent.includes("Hi there! I'm L4T Chatbot")) {
+                        return;
+                    }
+
+                    const role = el.classList.contains('user') ? 'user' : 'bot';
+                    const content = el.textContent.trim();
+
+                    if (content) {
+                        messages.push({ role, content });
+                    }
+                });
+
+                // Only save if there are actual messages
+                if (messages.length > 0) {
+                    // Generate or get conversation ID
+                    if (!currentConversationId) {
+                        currentConversationId = 'conv_' + Date.now();
+                        localStorage.setItem(`current_conversation_${currentFolder}`, currentConversationId);
+
+                        // Add to the folder's conversation list
+                        const folderConversations = JSON.parse(localStorage.getItem(`folder_conversations_${currentFolder}`) || '[]');
+
+                        // Generate title from first user message
+                        const title = generateTitle(messages);
+
+                        folderConversations.push({
+                            id: currentConversationId,
+                            title: title,
+                            date: new Date().toISOString()
+                        });
+
+                        localStorage.setItem(`folder_conversations_${currentFolder}`, JSON.stringify(folderConversations));
+
+                        // Update the chat title in the UI
+                        if (chatTitle) {
+                            chatTitle.textContent = title;
+                        }
+                    } else {
+                        // Update existing conversation title if it changed
+                        const folderConversations = JSON.parse(localStorage.getItem(`folder_conversations_${currentFolder}`) || '[]');
+                        const conversationIndex = folderConversations.findIndex(c => c.id === currentConversationId);
+
+                        if (conversationIndex !== -1) {
+                            const title = generateTitle(messages);
+                            if (folderConversations[conversationIndex].title !== title) {
+                                folderConversations[conversationIndex].title = title;
+                                localStorage.setItem(`folder_conversations_${currentFolder}`, JSON.stringify(folderConversations));
+
+                                // Update the chat title in the UI
+                                if (chatTitle) {
+                                    chatTitle.textContent = title;
+                                }
+                            }
+                        }
+                    }
+
+                    // Save the actual messages
+                    localStorage.setItem(`conversation_${currentConversationId}`, JSON.stringify(messages));
+                    console.log(`Saved ${messages.length} messages to conversation ${currentConversationId} in ${currentFolder}`);
+
+                    // Update the history display
+                    updateHistoryDisplay();
+                }
+            }
+
+            // Function to load a specific conversation
+            function loadConversation(conversationId) {
+                if (!chatMessages) return;
+
+                // Save current conversation first if needed
+                if (currentConversationId && currentConversationId !== conversationId) {
+                    saveCurrentChat();
+                }
+
+                // Set new conversation ID
+                currentConversationId = conversationId;
+                localStorage.setItem(`current_conversation_${currentFolder}`, currentConversationId);
+
+                // Get welcome message (to preserve it)
+                const welcomeMessage = chatMessages.querySelector('.message.bot:first-of-type');
+                let welcomeMessageHTML = '';
+                if (welcomeMessage) {
+                    welcomeMessageHTML = welcomeMessage.outerHTML;
+                }
+
+                // Clear chat and add back welcome message
+                chatMessages.innerHTML = welcomeMessageHTML;
+
+                // Load messages from storage
+                const savedMessages = JSON.parse(localStorage.getItem(`conversation_${conversationId}`) || '[]');
+                console.log(`Loaded ${savedMessages.length} messages from conversation ${conversationId}`);
+
+                // Add messages to the chat
+                savedMessages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.role}`;
+                    messageDiv.textContent = msg.content;
+                    chatMessages.appendChild(messageDiv);
+                });
+
+                // Scroll to bottom
+                if (chatMessages.scrollHeight) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+
+                // Update title
+                const folderConversations = JSON.parse(localStorage.getItem(`folder_conversations_${currentFolder}`) || '[]');
+                const conversation = folderConversations.find(c => c.id === conversationId);
+                if (conversation && chatTitle) {
+                    chatTitle.textContent = conversation.title;
+                }
+
+                // Update history display to highlight current conversation
+                updateHistoryDisplay();
+            }
+
+            // Function to update the history display in the sidebar
+            function updateHistoryDisplay() {
+                if (!chatHistory) return;
+
+                // Clear existing history
+                chatHistory.innerHTML = '';
+
+                // Add folder header with delete all button
+                const folderHeader = document.createElement('div');
+                folderHeader.className = 'folder-header-with-delete';
+                folderHeader.innerHTML = `
+                    <div class="folder-name">${currentFolder} Chats</div>
+                    <button class="delete-all-btn" title="Clear all conversations in this folder">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                chatHistory.appendChild(folderHeader);
+
+                // Add delete all handler
+                const deleteAllBtn = folderHeader.querySelector('.delete-all-btn');
+                deleteAllBtn.addEventListener('click', function() {
+                    showConfirmModal(`Are you sure you want to delete all conversations in the ${currentFolder} folder?`, 'all');
+                });
+
+                // Get all conversations for the current folder
+                const folderConversations = JSON.parse(localStorage.getItem(`folder_conversations_${currentFolder}`) || '[]');
+
+                // Sort by newest first
+                folderConversations.sort((a, b) => {
+                    return new Date(b.date) - new Date(a.date);
+                });
+
+                // Add each conversation to the history
+                folderConversations.forEach(conv => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    if (conv.id === currentConversationId) {
+                        historyItem.classList.add('active');
+                    }
+                    historyItem.innerHTML = `
+                        <i class="fas fa-comment"></i>
+                        <span>${conv.title}</span>
+                        <button class="delete-chat-btn" title="Delete this conversation">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    historyItem.dataset.conversationId = conv.id;
+
+                    // Add click handler to load the conversation
+                    historyItem.addEventListener('click', function(e) {
+                        // Don't trigger if clicking on the delete button
+                        if (!e.target.closest('.delete-chat-btn')) {
+                            loadConversation(conv.id);
+                        }
+                    });
+
+                    // Add delete button handler
+                    const deleteBtn = historyItem.querySelector('.delete-chat-btn');
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent triggering the parent click
+                        showConfirmModal('Are you sure you want to delete this conversation?', 'conversation', conv.id);
+                    });
+
+                    chatHistory.appendChild(historyItem);
+                });
+
+                // Show "no conversations" message if empty
+                if (folderConversations.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'empty-history-message';
+                    emptyMessage.style.padding = '10px';
+                    emptyMessage.style.color = '#8a8a8a';
+                    emptyMessage.style.fontSize = '14px';
+                    emptyMessage.style.textAlign = 'center';
+                    emptyMessage.style.fontStyle = 'italic';
+                    emptyMessage.textContent = 'No conversations yet';
+                    chatHistory.appendChild(emptyMessage);
+                }
+            }
+
+            // Function to switch folders
+            function switchFolder(folderName) {
+                if (!folders.includes(folderName)) return;
+
+                // Save current conversation first
+                saveCurrentChat();
+
+                // Switch folder
+                currentFolder = folderName;
+                localStorage.setItem('activeFolder', currentFolder);
+
+                // Update UI to show active folder
+                folderItems.forEach(item => {
+                    const itemName = item.querySelector('span').textContent.trim();
+                    if (itemName === folderName) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+
+                // Get current conversation for this folder
+                currentConversationId = localStorage.getItem(`current_conversation_${currentFolder}`);
+
+                // Update history display
+                updateHistoryDisplay();
+
+                // If there's a current conversation, load it
+                if (currentConversationId) {
+                    loadConversation(currentConversationId);
+                } else {
+                    // Start fresh
+                    startNewChat();
+                }
+            }
+
+            // Function to start a new chat
+            function startNewChat() {
+                // Reset current conversation ID
+                currentConversationId = null;
+                localStorage.removeItem(`current_conversation_${currentFolder}`);
+
+                // Reset chat title
+                if (chatTitle) {
+                    chatTitle.textContent = 'New Conversation';
+                }
+
+                // Get welcome message (to preserve it)
+                const welcomeMessage = chatMessages.querySelector('.message.bot:first-of-type');
+                let welcomeMessageHTML = '';
+                if (welcomeMessage) {
+                    welcomeMessageHTML = welcomeMessage.outerHTML;
+                }
+
+                // Clear chat and add back welcome message
+                chatMessages.innerHTML = welcomeMessageHTML;
+
+                // Update history display
+                updateHistoryDisplay();
+            }
+
+            // Add event listeners for folder tabs
+            folderItems.forEach(item => {
+                const folderName = item.querySelector('span').textContent.trim();
+                item.addEventListener('click', function() {
+                    switchFolder(folderName);
+                });
+            });
+
+            // Add event listener for new chat button
+            if (newChatButton) {
+                newChatButton.addEventListener('click', function() {
+                    // First save the current chat if needed
+                    if (currentConversationId) {
+                        saveCurrentChat();
+                    }
+
+                    // Then start a new chat
+                    startNewChat();
+                });
+            }
+
+            // Event listeners for confirm modal
+            cancelDeleteBtn.addEventListener('click', hideConfirmModal);
+            confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+
+            // Override the existing message sending function to save history
+            if (window.sendMessage) {
+                const originalSendMessage = window.sendMessage;
+                window.sendMessage = function() {
+                    console.log('Sending message and updating chat history');
+
+                    // Call the original function
+                    const result = originalSendMessage.apply(this, arguments);
+
+                    // Save chat history after a short delay (allow for response to be added)
+                    setTimeout(() => {
+                        saveCurrentChat();
+
+                        // If this is a new chat and we just sent the first message,
+                        // update the title based on this first message
+                        if (currentConversationId === null) {
+                            setTimeout(() => saveCurrentChat(), 1000);
+                        }
+                    }, 1000);
+
+                    return result;
+                };
+            }
+
+            // Save chat history before page unload
+            window.addEventListener('beforeunload', () => saveCurrentChat());
+
+            // Initialize by loading the current folder's active conversation
+            currentConversationId = localStorage.getItem(`current_conversation_${currentFolder}`);
+
+            if (currentConversationId) {
+                loadConversation(currentConversationId);
+                    } else {
+                // Just update the history display
+                updateHistoryDisplay();
+            }
+
+            // Ensure initial folder display is correct
+            updateHistoryDisplay();
+
+            // Ensure the correct folder tab is highlighted
+            folderItems.forEach(item => {
+                const itemName = item.querySelector('span').textContent.trim();
+                if (itemName === currentFolder) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            console.log('Enhanced chat history system with folder-specific displays initialized');
+        });
+
+        // Ensure Enter key works for sending messages
+        document.addEventListener('DOMContentLoaded', function() {
+            const userInput = document.getElementById('user-input');
+            if (userInput) {
+                userInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault(); // Prevent default newline
+                        sendMessage(); // Send the message
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
